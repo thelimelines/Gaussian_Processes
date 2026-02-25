@@ -1,0 +1,17 @@
+[project]
+name = "gaussian-processes-book"
+version = "0.1.0"
+description = "Standalone interactive Gaussian process explainer app."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "matplotlib>=3.10.0",
+    "numpy>=2.0.0",
+    "pandas>=2.2.0",
+    "scikit-learn>=1.5.0",
+    "scipy>=1.13.0",
+    "streamlit>=1.42.0",
+]
+
+[tool.uv]
+package = false

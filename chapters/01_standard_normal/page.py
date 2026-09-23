@@ -19,12 +19,16 @@ def render() -> None:
     st.markdown("The standard normal is:")
     st.latex(
         r"Z \sim \mathcal{N}(0, 1), \quad "
-        r"p(z) = \frac{1}{\sqrt{2\pi}} \exp\left(-\frac{z^2}{2}\right)."
+        r"\phi(z) = \frac{1}{\sqrt{2\pi}} \exp\left(-\frac{z^2}{2}\right)."
+    )
+    st.markdown(
+        r"Here, $\phi(\cdot)$ denotes the standard normal probability density "
+        r"function (pdf)."
     )
     st.markdown("Notation:")
     st.markdown(r"- $Z$: random variable.")
     st.markdown(r"- $z$: a realized value of $Z$.")
-    st.markdown(r"- $p(z)$: probability density evaluated at $z$.")
+    st.markdown(r"- $\phi(z)$: standard normal density evaluated at $z$.")
 
     col1, col2 = st.columns(2)
     with col1:

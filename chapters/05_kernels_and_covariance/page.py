@@ -12,8 +12,8 @@ TITLE = "5) Kernel Covariance Functions"
 def render() -> None:
     st.header(TITLE)
     st.markdown(
-        "Let's start with a simple idea: points that are close together in input space "
-        "usually have similar outputs. A kernel is the rule that turns that idea into math."
+        "Many common GP kernels encode a prior assumption that nearby inputs have similar "
+        "outputs. A kernel is the rule that expresses this assumption mathematically."
     )
     st.markdown("Notation:")
     st.markdown(r"- $x, x'$: two input locations.")
@@ -28,8 +28,18 @@ def render() -> None:
     )
     st.markdown(
         "Read it like this: each cell in the matrix asks, "
-        r"'how much should $f(x_i)$ move together with $f(x_j)$?' "
-        "Large value means strongly linked; small value means weakly linked."
+        r"'how should $f(x_i)$ and $f(x_j)$ vary together?' Positive covariance favours "
+        "movement in the same direction; negative covariance favours opposite directions; "
+        "a value near zero means little linear co-movement."
+    )
+    st.markdown("A scale-free measure of association is the correlation")
+    st.latex(
+        r"\rho(x,x')="
+        r"\frac{k(x,x')}{\sqrt{k(x,x)\,k(x',x')}}."
+    )
+    st.caption(
+        "The RBF, Matérn 3/2 and periodic kernels used here produce non-negative "
+        "covariances, but valid GP kernels can also produce negative covariance."
     )
     st.markdown("Expanded matrix form:")
     st.latex(
@@ -113,11 +123,3 @@ def render() -> None:
     ax2.set_yticks([])
     ax2.legend(loc="upper right", ncol=2, fontsize=legend_fontsize)
     st.pyplot(fig2)
-
-    st.markdown(
-        """
-References:
-- Rasmussen, C.E. and Williams, C.K.I. (2006), *Gaussian Processes for Machine Learning*, MIT Press.
-- Duvenaud, D. (2014), *The Kernel Cookbook*.
-"""
-    )

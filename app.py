@@ -20,8 +20,8 @@ NAV_BLUEPRINT: list[tuple[str, list[tuple[str, str]]]] = [
         "Chapter 0: Normal Distributions",
         [
             ("0.1", "01_standard_normal"),
-            ("0.2", "02_general_normal_with_sliders"),
-            ("0.3", "03_multivariate_normal_and_cholesky"),
+            ("0.2", "02_general_normal"),
+            ("0.3", "03_multivariate_normal"),
         ],
     ),
     (
@@ -41,6 +41,69 @@ NAV_BLUEPRINT: list[tuple[str, list[tuple[str, str]]]] = [
     ),
 ]
 
+REFERENCE_LINKS: dict[str, tuple[tuple[str, str], ...]] = {
+    "01_standard_normal": (
+        (
+            "SciPy: normal distribution (scipy.stats.norm)",
+            "https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.norm.html",
+        ),
+    ),
+    "02_general_normal": (
+        (
+            "SciPy: normal distribution (scipy.stats.norm)",
+            "https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.norm.html",
+        ),
+    ),
+    "03_multivariate_normal": (
+        (
+            "NumPy: multivariate normal sampling",
+            "https://numpy.org/doc/stable/reference/random/generated/numpy.random.Generator.multivariate_normal.html",
+        ),
+        (
+            "NumPy: Cholesky decomposition",
+            "https://numpy.org/doc/stable/reference/generated/numpy.linalg.cholesky.html",
+        ),
+    ),
+    "04_functions_as_vectors": (
+        (
+            "Rasmussen and Williams (2006), Gaussian Processes for Machine Learning",
+            "https://gaussianprocess.org/gpml/chapters/RW.pdf",
+        ),
+    ),
+    "05_kernels_and_covariance": (
+        (
+            "Rasmussen and Williams (2006), Gaussian Processes for Machine Learning",
+            "https://gaussianprocess.org/gpml/chapters/RW.pdf",
+        ),
+        (
+            "Duvenaud (2014), The Kernel Cookbook",
+            "https://www.cs.toronto.edu/~duvenaud/cookbook/",
+        ),
+    ),
+    "06_formal_gp_definition": (
+        (
+            "Rasmussen and Williams (2006), Gaussian Processes for Machine Learning",
+            "https://gaussianprocess.org/gpml/chapters/RW.pdf",
+        ),
+    ),
+    "07_interactive_gp_regressor": (
+        (
+            "Rasmussen and Williams (2006), Gaussian Processes for Machine Learning",
+            "https://gaussianprocess.org/gpml/chapters/RW.pdf",
+        ),
+    ),
+    "08_sklearn_gp_autotuning": (
+        (
+            "scikit-learn: GaussianProcessRegressor API",
+            "https://scikit-learn.org/stable/modules/generated/sklearn.gaussian_process.GaussianProcessRegressor.html",
+        ),
+        (
+            "scikit-learn: Gaussian processes user guide",
+            "https://scikit-learn.org/stable/modules/gaussian_process.html",
+        ),
+    ),
+}
+
 
 class Page(TypedDict):
     slug: str
@@ -56,6 +119,13 @@ class NavSection(TypedDict):
 
 def _clean_title(title: str) -> str:
     return re.sub(r"^\s*\d+\)\s*", "", title).strip()
+
+
+def _render_references(slug: str) -> None:
+    with st.container(border=True):
+        st.subheader("References")
+        for label, url in REFERENCE_LINKS.get(slug, ()):
+            st.markdown(f"- [{label}]({url})")
 
 
 def _build_navigation(
@@ -189,7 +259,13 @@ def main() -> None:
             st.rerun()
     with info_col:
         st.markdown(
-            f"**{selected_section_label}**  |  **{current_page['nav_label']}**"
+            f"""
+            <div style="text-align: center;">
+                <strong>{selected_section_label}</strong><br>
+                <strong>{current_page['nav_label']}</strong>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
     with next_col:
         if st.button("Next Page", disabled=current_flat_index == len(flat_pages) - 1):
@@ -202,6 +278,7 @@ def main() -> None:
         st.error(f"Chapter `{current_page['title']}` does not define `render()`.")
         return
     render_fn()
+    _render_references(current_page["slug"])
 
 
 if __name__ == "__main__":

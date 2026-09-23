@@ -14,7 +14,7 @@ app.py
 chapters/
   01_standard_normal/page.py
   02_general_normal_with_sliders/page.py
-  03_multivariate_normal_and_cholesky/page.py
+  03_multivariate_normal/page.py
   04_functions_as_vectors/page.py
   05_kernels_and_covariance/page.py
   06_formal_gp_definition/page.py
@@ -42,7 +42,7 @@ uv run streamlit run app.py
 
 1. Standard normal distribution
 2. General normal with interactive mean/variance controls
-3. Multivariate normal and Cholesky factor
+3. Multivariate normal
 4. Why sampled functions can be treated as vectors
 5. Kernel covariance functions (RBF, Matern 3/2, Periodic) with references
 6. Formal GP definition with visual finite draws

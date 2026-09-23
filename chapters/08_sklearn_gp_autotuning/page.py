@@ -12,6 +12,7 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import ConstantKernel, ExpSineSquared, Matern, RBF, WhiteKernel
 
 TITLE = "8) Scikit-Learn GP Regressor (Autotuned Hyperparameters)"
+NUMERICAL_JITTER = 1e-8
 
 
 def _synthetic_fn(x: np.ndarray, mode: str) -> np.ndarray:
@@ -27,7 +28,7 @@ def _build_kernel(
     length_scale: float,
     variance: float,
     period: float,
-    noise_std: float,
+    observation_noise_std: float,
 ):
     if kernel_name == "RBF":
         base = RBF(length_scale=length_scale, length_scale_bounds=(1e-2, 1e2))
@@ -42,7 +43,7 @@ def _build_kernel(
         )
 
     return ConstantKernel(variance, (1e-3, 1e3)) * base + WhiteKernel(
-        noise_level=noise_std**2,
+        noise_level=observation_noise_std**2,
         noise_level_bounds=(1e-8, 1e1),
     )
 
@@ -64,11 +65,15 @@ def render() -> None:
     )
     st.markdown("Notation carried from Chapter 7:")
     st.markdown(r"- $X$: observed inputs, $y$: observed outputs, $X_*$: prediction inputs.")
-    st.markdown(r"- $\theta$: kernel hyperparameters (length-scale, variance, noise, periodicity).")
+    st.markdown(
+        r"- $\theta$: kernel hyperparameters (length-scale, signal variance, "
+        r"observation-noise variance and periodicity)."
+    )
     st.markdown(r"- $*$ marks test/query points.")
     with st.expander("How autotuning works (plain-language view)"):
         st.markdown(
-            r"1. Pick an initial kernel with parameters $\theta$ (length-scale, variance, noise, etc.)."
+            r"1. Pick an initial kernel with parameters $\theta$ (length-scale, signal "
+            r"variance, observation noise, etc.)."
         )
         st.markdown(
             r"2. Build $K_\theta(X, X)$ from your current $\theta$, then evaluate "
@@ -78,18 +83,27 @@ def render() -> None:
             "3. Optimizer updates parameters to increase that score, repeating until convergence."
         )
         st.markdown(
-            "4. The final kernel is used for prediction, giving a posterior mean and uncertainty band."
+            "4. The final kernel gives a posterior mean and the noisy-observation band shown below."
         )
         st.markdown(
             "Intuition: the model searches for hyperparameters that best explain observed data "
             "while respecting the structure implied by the chosen kernel family."
         )
+
+    st.subheader("Observation noise and numerical jitter")
     st.markdown(
-        "Docs: "
-        "[GaussianProcessRegressor API](https://scikit-learn.org/stable/modules/generated/"
-        "sklearn.gaussian_process.GaussianProcessRegressor.html) and "
-        "[Gaussian process user guide](https://scikit-learn.org/stable/modules/gaussian_process.html)."
+        "`WhiteKernel` models real random scatter in observations. Its variance is learned "
+        "when optimisation is enabled and remains at its initial value otherwise. In this app, "
+        "`alpha` has a different job: it is a fixed, tiny diagonal term used to keep the "
+        "matrix calculation stable."
     )
+    st.latex(r"\operatorname{Var}(y_*)=\operatorname{Var}(f_*)+\sigma_n^2")
+    st.markdown(
+        "Here the posterior mean describes the latent signal. Because `WhiteKernel` is part "
+        "of the fitted kernel, scikit-learn's returned prediction standard deviation also "
+        "contains observation-noise variance at each prediction point."
+    )
+    st.caption(f"Numerical alpha is fixed at {NUMERICAL_JITTER:.0e}; it is not learned noise.")
 
     data_mode = st.radio(
         "Data source",
@@ -109,7 +123,7 @@ def render() -> None:
         with col3:
             x_max = st.slider("x max", 0.0, 8.0, 4.0, 0.1)
         with col4:
-            data_noise_std = st.slider("data noise std", 0.0, 1.0, 0.2, 0.01)
+            data_noise_std = st.slider("simulated data noise std", 0.0, 1.0, 0.2, 0.01)
 
         mode_lookup = {
             "Synthetic: sine": "sine",
@@ -152,7 +166,13 @@ def render() -> None:
     with col7:
         initial_variance = st.slider("initial variance", 0.05, 4.0, 1.0, 0.05)
     with col8:
-        initial_noise_std = st.slider("initial noise std", 0.001, 1.0, 0.2, 0.001)
+        initial_noise_std = st.slider(
+            "initial observation noise std (WhiteKernel)",
+            0.001,
+            1.0,
+            0.2,
+            0.001,
+        )
 
     col9, col10, col11, col12 = st.columns(4)
     with col9:
@@ -164,14 +184,8 @@ def render() -> None:
     with col12:
         n_restarts_optimizer = st.slider("optimizer restarts", 0, 12, 4, 1)
 
-    alpha = st.select_slider(
-        "alpha (diagonal jitter/noise term)",
-        options=[1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3],
-        value=1e-8,
-    )
-
     n_test = st.slider("prediction grid points", 80, 600, 240, 10)
-    n_posterior_draws = st.slider("posterior function draws", 0, 10, 3, 1)
+    n_predictive_draws = st.slider("noisy predictive draws", 0, 10, 3, 1)
 
     X_train = x_train[:, None]
     X_test = np.linspace(x_min, x_max, n_test)[:, None]
@@ -182,7 +196,7 @@ def render() -> None:
         length_scale=initial_length_scale,
         variance=initial_variance,
         period=period,
-        noise_std=initial_noise_std,
+        observation_noise_std=initial_noise_std,
     )
 
     optimizer = "fmin_l_bfgs_b" if optimizer_mode == "L-BFGS-B" else None
@@ -192,7 +206,7 @@ def render() -> None:
         warnings.simplefilter("always", ConvergenceWarning)
         gpr = GaussianProcessRegressor(
             kernel=kernel,
-            alpha=float(alpha),
+            alpha=NUMERICAL_JITTER,
             optimizer=optimizer,
             n_restarts_optimizer=restarts,
             normalize_y=normalize_y,
@@ -208,7 +222,7 @@ def render() -> None:
     if convergence_messages:
         st.warning("Convergence warnings were raised:\n- " + "\n- ".join(convergence_messages))
 
-    mean, std = cast(
+    mean, observation_std = cast(
         tuple[np.ndarray, np.ndarray],
         gpr.predict(X_test, return_std=True),
     )
@@ -221,11 +235,11 @@ def render() -> None:
     fig, ax = plt.subplots(figsize=(11, 4.5))
     ax.fill_between(
         x_test,
-        mean - 1.96 * std,
-        mean + 1.96 * std,
+        mean - 1.96 * observation_std,
+        mean + 1.96 * observation_std,
         color="#1f77b4",
         alpha=0.2,
-        label="95% interval",
+        label="95% noisy-observation interval",
         zorder=1,
     )
 
@@ -241,12 +255,12 @@ def render() -> None:
             color="#2ca02c",
             linestyle="--",
             linewidth=3.0,
-            label="true function",
+            label="simulated latent function",
             zorder=4,
         )
 
-    if n_posterior_draws > 0:
-        sampled = gpr.sample_y(X_test, n_samples=n_posterior_draws, random_state=321)
+    if n_predictive_draws > 0:
+        sampled = gpr.sample_y(X_test, n_samples=n_predictive_draws, random_state=321)
         if sampled.ndim == 1:
             sampled = sampled[:, None]
         if sampled.ndim == 3:
@@ -258,28 +272,52 @@ def render() -> None:
                 color="#7a7a7a",
                 linewidth=1.2,
                 alpha=0.75,
-                label="posterior draws" if idx == 0 else None,
+                label="noisy predictive draws" if idx == 0 else None,
                 zorder=2,
             )
 
-    ax.plot(x_test, mean, color="#1f77b4", linewidth=3.5, label="posterior mean", zorder=4)
-    ax.scatter(x_train, y_train, color="black", label="train points", zorder=5)
+    ax.plot(
+        x_test,
+        mean,
+        color="#1f77b4",
+        linewidth=3.5,
+        label="latent posterior mean",
+        zorder=4,
+    )
+    ax.scatter(x_train, y_train, color="black", label="observations y", zorder=5)
 
     ax.set_title("Scikit-learn Gaussian Process Regression", fontsize=title_fontsize)
     ax.set_xlabel("x", fontsize=label_fontsize)
-    ax.set_ylabel("y", fontsize=label_fontsize)
+    ax.set_ylabel("latent value or observation", fontsize=label_fontsize)
     ax.tick_params(axis="both", labelsize=tick_fontsize)
     ax.legend(loc="upper right", fontsize=legend_fontsize, ncol=2)
     st.pyplot(fig)
 
     st.subheader("Learned model")
     st.code(str(gpr.kernel_), language="text")
-    colm1, colm2 = st.columns(2)
+    fitted_white_kernel = getattr(gpr.kernel_, "k2", None)
+    learned_noise_variance = float(getattr(fitted_white_kernel, "noise_level", np.nan))
+    white_kernel_metric = (
+        "Learned WhiteKernel variance"
+        if optimizer is not None
+        else "Fixed WhiteKernel variance"
+    )
+    colm1, colm2, colm3, colm4 = st.columns(4)
     with colm1:
         st.metric("Log-marginal likelihood", f"{gpr.log_marginal_likelihood_value_:.3f}")
     with colm2:
+        st.metric(white_kernel_metric, f"{learned_noise_variance:.3g}")
+    with colm3:
+        st.metric("Fixed numerical alpha", f"{NUMERICAL_JITTER:.0e}")
+    with colm4:
         st.metric("Optimizer restarts used", f"{restarts}")
 
-    preview = pd.DataFrame({"x*": x_test[:12], "mean": mean[:12], "std": std[:12]})
-    st.write("Preview of posterior predictions:")
+    preview = pd.DataFrame(
+        {
+            "x*": x_test[:12],
+            "latent posterior mean": mean[:12],
+            "noisy-observation std": observation_std[:12],
+        }
+    )
+    st.write("Preview of noisy-observation predictions:")
     st.dataframe(preview, width="stretch")

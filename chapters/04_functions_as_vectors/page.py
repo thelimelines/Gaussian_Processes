@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-TITLE = "4) A Sampled Function Is a Vector"
+TITLE = "4) Latent Function Values Form a Vector"
 
 
 def _base_function(x: np.ndarray, fn_name: str) -> np.ndarray:
@@ -21,51 +21,96 @@ def _base_function(x: np.ndarray, fn_name: str) -> np.ndarray:
 def render() -> None:
     st.header(TITLE)
     st.markdown(
-        "Gaussian processes are about random functions, but computation happens on finite "
-        "grids. This chapter makes that bridge explicit."
+        "A Gaussian process describes an unknown, noise-free function. "
+        "We call this the **latent function** because it is not observed directly."
     )
-    st.markdown(r"If we evaluate a function at inputs $x_1, \dots, x_n$, we get:")
-    st.latex(r"\mathbf{f} = [f(x_1), f(x_2), \dots, f(x_n)]^\top")
-    st.markdown("Notation:")
-    st.markdown(r"- $x_i$: the $i$th input location.")
-    st.markdown(r"- $f(x_i)$: function value at that input.")
-    st.markdown(r"- $\mathbf{f}$: stacked vector of function values.")
+    st.markdown(r"At inputs $x_1,\ldots,x_n$, its latent values form the vector")
+    st.latex(r"\mathbf f=[f(x_1),\ldots,f(x_n)]^\top.")
     st.markdown(
-        'So a "random function" can be understood as a random vector at any finite set of inputs. '
-        "This is the bridge to Gaussian processes."
+        r"The GP prior is a distribution over $\mathbf f$. It says which sets of latent "
+        "function values are plausible before any measurements are used."
     )
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
     with col1:
-        fn_name = st.selectbox("Base function", ["sine", "cosine", "quadratic", "linear"], index=0)
+        fn_name = st.selectbox(
+            "Latent function",
+            ["sine", "cosine", "quadratic", "linear"],
+            index=0,
+            key="ch4_function",
+        )
     with col2:
-        n_points = st.slider("Number of x points", 5, 120, 25, 1)
-    with col3:
-        noise_std = st.slider("Noise std", 0.0, 1.0, 0.1, 0.01)
+        n_points = st.slider("Input locations", 5, 120, 25, 1, key="ch4_n_points")
 
     x = np.linspace(-3.5, 3.5, n_points)
-    base = _base_function(x, fn_name)
+    f = _base_function(x, fn_name)
+
+    st.subheader("Measurements add noise")
+    st.markdown(r"A measurement $y_i$ is the latent value plus observational noise:")
+    st.latex(r"y_i=f(x_i)+\epsilon_i,\qquad \epsilon_i\sim\mathcal N(0,\sigma_n^2).")
+    noise_std = st.slider(
+        "Observation noise standard deviation",
+        0.0,
+        1.0,
+        0.1,
+        0.01,
+        key="ch4_noise_std",
+    )
+
     rng = np.random.default_rng(3)
-    y = base + noise_std * rng.standard_normal(n_points)
+    y = f + noise_std * rng.standard_normal(n_points)
+    x_dense = np.linspace(-3.5, 3.5, 400)
+    f_dense = _base_function(x_dense, fn_name)
 
     fig, ax = plt.subplots(figsize=(9, 4))
-    ax.plot(x, y, marker="o", linewidth=1.2, markersize=3, label="vector entries")
+    ax.plot(x_dense, f_dense, color="#1f77b4", linewidth=2.5, label="latent function f(x)")
+    ax.scatter(
+        x,
+        f,
+        color="#1f77b4",
+        s=24,
+        zorder=3,
+        label="latent values f(x_i)",
+    )
+    ax.scatter(
+        x,
+        y,
+        color="#d62728",
+        marker="x",
+        s=38,
+        zorder=4,
+        label="observations y_i",
+    )
     ax.set_xlabel("x")
-    ax.set_ylabel("f(x)")
-    ax.set_title("A finite function sample is a vector")
+    ax.set_ylabel("value")
+    ax.set_title("Latent function values and noisy observations")
     ax.legend(loc="upper right")
     st.pyplot(fig)
 
-    preview = pd.DataFrame({"x_i": x[:10], "f(x_i)": y[:10]})
-    st.write("First 10 entries of the vector representation:")
+    preview = pd.DataFrame(
+        {
+            "x_i": x[:10],
+            "latent f(x_i)": f[:10],
+            "observation y_i": y[:10],
+        }
+    )
+    st.write("First 10 latent values and observations:")
     st.dataframe(preview, width="stretch")
     st.info(
-        "Bridge to Chapter 1.2: in a GP, covariance between entries of this vector "
-        r"is specified by a kernel $k(x_i, x_j)$."
+        r"Keep the roles separate: the GP prior models latent values $\mathbf f$. "
+        r"The observations $\mathbf y$ also contain measurement noise."
+    )
+    st.info(
+        r"Bridge to Section 1.2: at a finite set of inputs, a Gaussian process becomes "
+        r"a multivariate normal distribution over the latent vector $\mathbf f$. "
+        r"We now need a covariance matrix $K$ to describe how those values vary together. "
+        r"A kernel builds that matrix from the input locations: "
+        r"$K_{ij}=k(x_i,x_j)$, so $\mathbf f\sim\mathcal{N}(\mathbf m,K)$."
     )
 
     st.code(
         "x = np.linspace(-3.5, 3.5, n)\n"
-        "f_vec = f(x)  # [f(x1), ..., f(xn)]",
+        "f_vec = f(x)                 # latent function values\n"
+        "y = f_vec + observation_noise  # measured observations",
         language="python",
     )

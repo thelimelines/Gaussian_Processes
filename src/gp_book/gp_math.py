@@ -82,10 +82,17 @@ def cholesky_with_jitter(K: np.ndarray, base_jitter: float = 1e-8) -> np.ndarray
     raise np.linalg.LinAlgError("Cholesky decomposition failed even after jitter escalation.")
 
 
-def sample_mvn(mu: np.ndarray, cov: np.ndarray, n_samples: int, rng: np.random.Generator) -> np.ndarray:
+def sample_mvn(
+    mu: np.ndarray,
+    cov: np.ndarray,
+    n_samples: int,
+    rng: np.random.Generator,
+    *,
+    jitter: float = 1e-8,
+) -> np.ndarray:
     mu = np.asarray(mu, dtype=float).reshape(-1)
     cov = np.asarray(cov, dtype=float)
-    L = cholesky_with_jitter(cov)
+    L = cholesky_with_jitter(cov, base_jitter=jitter)
     z = rng.standard_normal((mu.shape[0], int(n_samples)))
     return (mu[:, None] + L @ z).T
 
@@ -101,10 +108,13 @@ def sample_gp_prior(
 ) -> np.ndarray:
     X = ensure_2d(X)
     K = kernel_fn(X, X)
-    K = 0.5 * (K + K.T) + float(jitter) * np.eye(X.shape[0])
-    if mean is None:
-        mean = np.zeros(X.shape[0], dtype=float)
-    return sample_mvn(mean, K, n_samples=n_samples, rng=rng)
+    K = 0.5 * (K + K.T)
+    mean_vector = (
+        np.zeros(X.shape[0], dtype=float)
+        if mean is None
+        else np.asarray(mean, dtype=float)
+    )
+    return sample_mvn(mean_vector, K, n_samples=n_samples, rng=rng, jitter=jitter)
 
 
 def gp_posterior_predictive(
@@ -113,21 +123,31 @@ def gp_posterior_predictive(
     X_test: np.ndarray,
     kernel_fn,
     *,
-    noise_variance: float = 1e-2,
+    noise_variance: float | np.ndarray = 1e-2,
     jitter: float = 1e-8,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     X_train = ensure_2d(X_train)
     X_test = ensure_2d(X_test)
     y_train = np.asarray(y_train, dtype=float).reshape(-1, 1)
 
-    noise_variance = max(float(noise_variance), 1e-12)
     jitter = max(float(jitter), 1e-12)
 
+    noise_values = np.asarray(noise_variance, dtype=float)
+    if noise_values.ndim == 0:
+        noise_diagonal = np.full(
+            X_train.shape[0],
+            max(float(noise_values.item()), 1e-12),
+        )
+    else:
+        noise_diagonal = np.maximum(noise_values.reshape(-1), 1e-12)
+        if noise_diagonal.shape[0] != X_train.shape[0]:
+            raise ValueError("noise_variance must be a scalar or have one value per observation.")
+
     K_xx = kernel_fn(X_train, X_train)
-    K_xx = 0.5 * (K_xx + K_xx.T) + (noise_variance + jitter) * np.eye(X_train.shape[0])
+    K_xx = 0.5 * (K_xx + K_xx.T) + np.diag(noise_diagonal)
     K_xs = kernel_fn(X_train, X_test)
     K_ss = kernel_fn(X_test, X_test)
-    K_ss = 0.5 * (K_ss + K_ss.T) + jitter * np.eye(X_test.shape[0])
+    K_ss = 0.5 * (K_ss + K_ss.T)
 
     L = cholesky_with_jitter(K_xx, base_jitter=jitter)
     alpha = np.linalg.solve(L.T, np.linalg.solve(L, y_train))

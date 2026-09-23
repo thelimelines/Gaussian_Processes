@@ -47,12 +47,6 @@ def render() -> None:
         "In plain words: evaluate the mean at each point to get a mean vector, and evaluate "
         "the kernel for every pair of points to get a covariance matrix."
     )
-    st.markdown(
-        "Reference for this definition and notation: Rasmussen, C.E. and Williams, C.K.I. "
-        "(2006), *Gaussian Processes for Machine Learning*, MIT Press; free online PDF: "
-        "https://gaussianprocess.org/gpml/chapters/RW.pdf"
-    )
-
     with st.expander("Slow walkthrough: from prior to posterior (behind the scenes)"):
         st.markdown("1. Start with prior assumptions")
         st.markdown(
@@ -94,7 +88,8 @@ def render() -> None:
         )
         st.markdown(
             "These two equations are the engine of GP regression: "
-            r"$\mu_*$ is the best estimate and $\Sigma_*$ is uncertainty."
+            r"$\mu_*=\mathbb E[f_*\mid X,y]$ is the posterior mean, and $\Sigma_*$ "
+            "is the latent-function uncertainty."
         )
         st.markdown("5. Why runtime grows quickly")
         st.markdown(

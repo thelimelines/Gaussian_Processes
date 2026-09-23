@@ -7,7 +7,7 @@ from scipy.stats import norm
 
 from gp_book.gp_math import normal_pdf, standard_normal_pdf
 
-TITLE = "2) General Normal With Sliders"
+TITLE = "2) General Normal"
 
 
 def render() -> None:
@@ -21,7 +21,10 @@ def render() -> None:
         r"X \sim \mathcal{N}(\mu, \sigma^2), \quad "
         r"p(x) = \frac{1}{\sigma} \phi\left(\frac{x - \mu}{\sigma}\right)"
     )
-    st.markdown(r"where $\phi(\cdot)$ is the standard normal density.")
+    st.markdown(
+        r"Reminder: $\phi(z) = \frac{1}{\sqrt{2\pi}} "
+        r"\exp\left(-\frac{z^2}{2}\right)$ is the standard normal density."
+    )
     st.markdown("Notation:")
     st.markdown(r"- $X$: random variable.")
     st.markdown(r"- $\mu$: mean (location).")
@@ -34,7 +37,7 @@ def render() -> None:
     with col2:
         sigma = st.slider("Std dev (sigma)", 0.2, 4.0, 1.0, 0.1)
     with col3:
-        x0 = st.slider("Query x", -8.0, 8.0, 0.0, 0.1)
+        a, b = st.slider("Interval for P(a <= X <= b)", -4.0, 4.0, (-1.0, 1.0), 0.1)
 
     x = np.linspace(-8.0, 8.0, 700)
     y = normal_pdf(x, mu, sigma)
@@ -43,25 +46,28 @@ def render() -> None:
     fig, ax = plt.subplots(figsize=(9, 4))
     ax.plot(x, y, label=f"N({mu:.1f}, {sigma:.1f}^2)")
     ax.plot(x, y_std, linestyle="--", label="N(0, 1)")
-    ax.axvline(x0, color="black", linewidth=1.0, alpha=0.5)
+    mask = (x >= a) & (x <= b)
+    ax.fill_between(x[mask], 0.0, y[mask], alpha=0.25, label=f"P({a:.1f} <= X <= {b:.1f})")
     ax.set_xlabel("x")
     ax.set_ylabel("density")
     ax.set_title("General normal vs standard normal")
     ax.legend(loc="upper right")
     st.pyplot(fig)
 
-    z0 = (x0 - mu) / sigma
-    cdf_val = float(norm.cdf(x0, loc=mu, scale=sigma))
+    interval_prob = float(norm.cdf(b, loc=mu, scale=sigma) - norm.cdf(a, loc=mu, scale=sigma))
+    standard_interval_prob = float(norm.cdf(b) - norm.cdf(a))
 
-    st.latex(r"z = \frac{x - \mu}{\sigma}")
-    st.write(f"For x = {x0:.2f}: z = {z0:.3f}, P(X <= x) = {cdf_val:.4f}")
+    probability_col, standard_probability_col = st.columns(2)
+    with probability_col:
+        st.metric("P(a <= X <= b)", f"{interval_prob:.4f}")
+    with standard_probability_col:
+        st.metric("P(a <= Z <= b) for N(0, 1)", f"{standard_interval_prob:.4f}")
     st.info(
         "Bridge to Chapter 0.3: once we stack multiple Gaussian variables into a vector, "
         "covariance structure appears as a matrix."
     )
 
     st.code(
-        "z = (x - mu) / sigma\n"
-        "p = norm.cdf(x, loc=mu, scale=sigma)",
+        "p = norm.cdf(b, loc=mu, scale=sigma) - norm.cdf(a, loc=mu, scale=sigma)",
         language="python",
     )

@@ -114,7 +114,7 @@ def load_chapters() -> list[tuple[str, object, str]]:
 def main() -> None:
     st.set_page_config(page_title="Gaussian Process Explainer", layout="wide")
     st.title("Gaussian Process Explainer Book")
-    st.caption("Standalone interactive chapters: markdown + LaTeX + code + plots")
+    # st.caption("Standalone interactive chapters: markdown + LaTeX + code + plots")
 
     chapters = load_chapters()
     if not chapters:

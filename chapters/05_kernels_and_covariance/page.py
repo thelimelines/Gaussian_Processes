@@ -91,22 +91,27 @@ def render() -> None:
     x = np.linspace(-4.0, 4.0, n_points)[:, None]
     K = kernel_fn(x, x)
 
-    fig, ax = plt.subplots(figsize=(5, 4))
+    title_fontsize = 20
+    legend_fontsize = 16
+
+    fig, ax = plt.subplots(figsize=(5, 4), dpi=300)
     im = ax.imshow(K, origin="lower", aspect="auto")
-    ax.set_title("Covariance matrix K(X, X)")
+    ax.set_title("Cov matrix K(x,x')", fontsize=title_fontsize)
+    ax.set_xticks([])
+    ax.set_yticks([])
     fig.colorbar(im, ax=ax, shrink=0.85)
     st.pyplot(fig)
 
     rng = np.random.default_rng(14)
     samples = sample_gp_prior(x, kernel_fn, n_samples=5, rng=rng)
 
-    fig2, ax2 = plt.subplots(figsize=(9, 4))
+    fig2, ax2 = plt.subplots(figsize=(9, 4), dpi=300)
     for idx, sample in enumerate(samples):
         ax2.plot(x[:, 0], sample, label=f"sample {idx + 1}")
-    ax2.set_title(f"Prior function samples ({kernel_name})")
-    ax2.set_xlabel("x")
-    ax2.set_ylabel("f(x)")
-    ax2.legend(loc="upper right", ncol=2, fontsize=8)
+    ax2.set_title(f"Prior function samples ({kernel_name})", fontsize=title_fontsize)
+    ax2.set_xticks([])
+    ax2.set_yticks([])
+    ax2.legend(loc="upper right", ncol=2, fontsize=legend_fontsize)
     st.pyplot(fig2)
 
     st.markdown(

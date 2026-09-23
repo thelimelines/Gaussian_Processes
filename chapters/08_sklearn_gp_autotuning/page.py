@@ -209,9 +209,12 @@ def render() -> None:
 
     mean, std = gpr.predict(X_test, return_std=True)
 
+    title_fontsize = 24
+    label_fontsize = 20
+    tick_fontsize = 18
+    legend_fontsize = 16
+
     fig, ax = plt.subplots(figsize=(11, 4.5))
-    ax.scatter(x_train, y_train, color="black", label="train points", zorder=3)
-    ax.plot(x_test, mean, color="#1f77b4", linewidth=2.0, label="posterior mean")
     ax.fill_between(
         x_test,
         mean - 1.96 * std,
@@ -219,6 +222,7 @@ def render() -> None:
         color="#1f77b4",
         alpha=0.2,
         label="95% interval",
+        zorder=1,
     )
 
     if true_curve is not None:
@@ -232,8 +236,9 @@ def render() -> None:
             _synthetic_fn(x_test, mode_lookup[data_mode]),
             color="#2ca02c",
             linestyle="--",
-            linewidth=1.5,
+            linewidth=3.0,
             label="true function",
+            zorder=4,
         )
 
     if n_posterior_draws > 0:
@@ -243,12 +248,24 @@ def render() -> None:
         if sampled.ndim == 3:
             sampled = sampled[:, :, 0]
         for idx in range(sampled.shape[1]):
-            ax.plot(x_test, sampled[:, idx], linewidth=1.0, alpha=0.8, label=f"posterior draw {idx + 1}")
+            ax.plot(
+                x_test,
+                sampled[:, idx],
+                color="#7a7a7a",
+                linewidth=1.2,
+                alpha=0.75,
+                label="posterior draws" if idx == 0 else None,
+                zorder=2,
+            )
 
-    ax.set_title("Scikit-learn Gaussian Process Regression")
-    ax.set_xlabel("x")
-    ax.set_ylabel("y")
-    ax.legend(loc="upper right", fontsize=8, ncol=2)
+    ax.plot(x_test, mean, color="#1f77b4", linewidth=3.5, label="posterior mean", zorder=4)
+    ax.scatter(x_train, y_train, color="black", label="train points", zorder=5)
+
+    ax.set_title("Scikit-learn Gaussian Process Regression", fontsize=title_fontsize)
+    ax.set_xlabel("x", fontsize=label_fontsize)
+    ax.set_ylabel("y", fontsize=label_fontsize)
+    ax.tick_params(axis="both", labelsize=tick_fontsize)
+    ax.legend(loc="upper right", fontsize=legend_fontsize, ncol=2)
     st.pyplot(fig)
 
     st.subheader("Learned model")

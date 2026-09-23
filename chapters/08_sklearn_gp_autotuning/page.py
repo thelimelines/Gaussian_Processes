@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import warnings
+from typing import cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -207,7 +208,10 @@ def render() -> None:
     if convergence_messages:
         st.warning("Convergence warnings were raised:\n- " + "\n- ".join(convergence_messages))
 
-    mean, std = gpr.predict(X_test, return_std=True)
+    mean, std = cast(
+        tuple[np.ndarray, np.ndarray],
+        gpr.predict(X_test, return_std=True),
+    )
 
     title_fontsize = 24
     label_fontsize = 20

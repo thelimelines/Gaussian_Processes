@@ -4,6 +4,7 @@ import importlib.util
 import re
 import sys
 from pathlib import Path
+from typing import TypedDict
 
 import streamlit as st
 
@@ -41,19 +42,31 @@ NAV_BLUEPRINT: list[tuple[str, list[tuple[str, str]]]] = [
 ]
 
 
+class Page(TypedDict):
+    slug: str
+    title: str
+    module: object
+    nav_label: str
+
+
+class NavSection(TypedDict):
+    section_label: str
+    items: list[Page]
+
+
 def _clean_title(title: str) -> str:
     return re.sub(r"^\s*\d+\)\s*", "", title).strip()
 
 
 def _build_navigation(
     chapters: list[tuple[str, object, str]],
-) -> list[dict[str, list[dict[str, object]] | str]]:
+) -> list[NavSection]:
     chapters_by_slug = {slug: (title, module) for title, module, slug in chapters}
     used_slugs: set[str] = set()
-    sections: list[dict[str, list[dict[str, object]] | str]] = []
+    sections: list[NavSection] = []
 
     for section_label, items in NAV_BLUEPRINT:
-        section_items: list[dict[str, object]] = []
+        section_items: list[Page] = []
         for number, slug in items:
             chapter_entry = chapters_by_slug.get(slug)
             if chapter_entry is None:
@@ -73,7 +86,7 @@ def _build_navigation(
 
     remaining = sorted(slug for slug in chapters_by_slug if slug not in used_slugs)
     if remaining:
-        extra_items: list[dict[str, object]] = []
+        extra_items: list[Page] = []
         for idx, slug in enumerate(remaining, start=1):
             title, module = chapters_by_slug[slug]
             extra_items.append(

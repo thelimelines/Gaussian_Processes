@@ -29,8 +29,26 @@ Each chapter is a folder with a `page.py` renderer, so you can expand the book p
 
 ```powershell
 uv venv
-uv sync
+uv sync --group dev
 ```
+
+## Contributor checks
+
+Ruff, Pyright, and mypy are included in the development dependency group. Before
+committing, format the Python files and run the checks:
+
+```powershell
+uv run ruff format .
+uv run ruff check .
+uv run pyright
+uv run mypy
+```
+
+Pyright checks the app and chapter renderers; mypy checks the app entry point
+and reusable `src/gp_book` package.
+
+CI checks formatting first, then lint and type checks. If the formatter reports
+changes, run `ruff format .` locally and commit the formatted files.
 
 ## Run
 

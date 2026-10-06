@@ -13,5 +13,32 @@ dependencies = [
     "streamlit>=1.42.0",
 ]
 
+[dependency-groups]
+dev = [
+    "mypy",
+    "pyright",
+    "ruff",
+]
+
+[tool.ruff]
+target-version = "py311"
+
+[tool.ruff.lint]
+extend-select = ["I"]
+
+[tool.pyright]
+pythonVersion = "3.11"
+typeCheckingMode = "standard"
+include = ["app.py", "chapters", "src"]
+extraPaths = ["src"]
+venvPath = "."
+venv = ".venv"
+
+[tool.mypy]
+python_version = "3.11"
+mypy_path = "src"
+files = ["app.py", "src/gp_book"]
+ignore_missing_imports = true
+
 [tool.uv]
 package = false

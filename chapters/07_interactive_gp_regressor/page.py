@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import TypedDict
+from functools import partial
+from typing import TypedDict, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -48,7 +49,7 @@ def _conditioning_posterior(
     noise_variance = np.square(
         np.array([item["noise_std"] for item in observations], dtype=float)
     )
-    kernel_fn = lambda a, b: rbf_kernel(a, b, length_scale=1.0, variance=1.0)
+    kernel_fn = partial(rbf_kernel, length_scale=1.0, variance=1.0)
     return gp_posterior_predictive(
         X_train,
         y_train,
@@ -64,7 +65,9 @@ def _render_conditioning_experiment() -> None:
         "Conditioning means updating a prediction after seeing an observation. "
         "Choose a point, predict the effect, then add it and inspect the change."
     )
-    st.info("Cycle: **predict → change → observe → explain**. Add several points and repeat.")
+    st.info(
+        "Cycle: **predict → change → observe → explain**. Add several points and repeat."
+    )
 
     if "ch7_observations" not in st.session_state:
         st.session_state["ch7_observations"] = _initial_observations()
@@ -193,11 +196,15 @@ def _render_conditioning_experiment() -> None:
     if last_addition is not None:
         previous_count = int(last_addition["previous_count"])
         previous_observations = observations[:previous_count]
-        previous_mean, _, previous_std = _conditioning_posterior(previous_observations, X_test)
+        previous_mean, _, previous_std = _conditioning_posterior(
+            previous_observations, X_test
+        )
 
     observation_x = np.array([item["x"] for item in observations], dtype=float)
     observation_y = np.array([item["y"] for item in observations], dtype=float)
-    observation_noise = np.array([item["noise_std"] for item in observations], dtype=float)
+    observation_noise = np.array(
+        [item["noise_std"] for item in observations], dtype=float
+    )
 
     fig, ax = plt.subplots(figsize=(11, 4.5))
     ax.plot(
@@ -253,7 +260,11 @@ def _render_conditioning_experiment() -> None:
     ax.legend(loc="upper right", fontsize=8, ncol=2)
     st.pyplot(fig)
 
-    if last_addition is not None and previous_mean is not None and previous_std is not None:
+    if (
+        last_addition is not None
+        and previous_mean is not None
+        and previous_std is not None
+    ):
         last_x = float(last_addition["x"])
         last_y = float(last_addition["y"])
         point_index = int(np.argmin(np.abs(x_test - last_x)))
@@ -301,14 +312,14 @@ def render() -> None:
     with st.expander("The conditioning equations"):
         st.markdown("For noisy observations, the updated latent values follow")
         st.latex(
-            r"f_* \mid X, y, X_* \sim \mathcal{N}\left("
-            r"\mu_*, \Sigma_*"
-            r"\right)."
+            r"f_* \mid X, y, X_* \sim \mathcal{N}\left(" r"\mu_*, \Sigma_*" r"\right)."
         )
         st.markdown(r"- $X$: training inputs you already observed.")
         st.markdown(r"- $y$: observed outputs at those inputs.")
         st.markdown(r"- $X_*$: new query inputs where you want predictions.")
-        st.markdown(r"- $\mu_*=\mathbb E[f_*\mid X,y]$: posterior mean of the latent function.")
+        st.markdown(
+            r"- $\mu_*=\mathbb E[f_*\mid X,y]$: posterior mean of the latent function."
+        )
         st.markdown(r"- $\Sigma_*$: posterior covariance of the latent function.")
         st.markdown(
             r"- `assumed observation noise std`: this is $\sigma_n$, and we use $\sigma_n^2 I$ "
@@ -330,9 +341,7 @@ def render() -> None:
         st.latex(
             r"\sigma^2(x) = K(x, x) - K(x, X)\left[K(X, X) + \sigma_n^2 I\right]^{-1}K(X, x)"
         )
-        st.latex(
-            r"K(x,X)=\begin{bmatrix}K(x,x_1)&\cdots&K(x,x_t)\end{bmatrix}"
-        )
+        st.latex(r"K(x,X)=\begin{bmatrix}K(x,x_1)&\cdots&K(x,x_t)\end{bmatrix}")
         st.latex(
             r"K(X,X)=\begin{bmatrix}"
             r"K(x_1,x_1)&\cdots&K(x_1,x_t)\\"
@@ -367,7 +376,9 @@ def render() -> None:
         with col3:
             x_max = st.slider("x max", 0.0, 8.0, 4.0, 0.1)
         with col4:
-            data_noise_std = st.slider("simulated observation noise std", 0.0, 1.0, 0.2, 0.01)
+            data_noise_std = st.slider(
+                "simulated observation noise std", 0.0, 1.0, 0.2, 0.01
+            )
 
         mode_lookup = {
             "Synthetic: sine": "sine",
@@ -385,9 +396,17 @@ def render() -> None:
                 "y": [0.2, -0.7, -0.9, -0.1, 0.8, 0.7, 0.3],
             }
         )
-        edited = st.data_editor(default_df, num_rows="dynamic", width="stretch", key="gp_table")
-        clean = edited[["x", "y"]].apply(pd.to_numeric, errors="coerce").dropna()
-        clean = clean.sort_values("x")
+        edited = cast(
+            pd.DataFrame,
+            st.data_editor(
+                default_df, num_rows="dynamic", width="stretch", key="gp_table"
+            ),
+        )
+        clean = cast(
+            pd.DataFrame,
+            edited[["x", "y"]].apply(pd.to_numeric, errors="coerce").dropna(),
+        )
+        clean = clean.sort_values(by=["x"])
         if clean.shape[0] < 2:
             st.warning("Add at least 2 valid points in the custom table.")
             return
@@ -405,17 +424,24 @@ def render() -> None:
     with col7:
         variance = st.slider("variance", 0.05, 4.0, 1.0, 0.05)
     with col8:
-        obs_noise_std = st.slider("assumed observation noise std", 0.001, 1.0, 0.2, 0.001)
+        obs_noise_std = st.slider(
+            "assumed observation noise std", 0.001, 1.0, 0.2, 0.001
+        )
 
     period = st.slider("period (Periodic kernel only)", 0.2, 5.0, 1.0, 0.05)
 
     if kernel_name == "RBF":
-        kernel_fn = lambda a, b: rbf_kernel(a, b, length_scale=length_scale, variance=variance)
+        kernel_fn = partial(rbf_kernel, length_scale=length_scale, variance=variance)
     elif kernel_name == "Matern 3/2":
-        kernel_fn = lambda a, b: matern32_kernel(a, b, length_scale=length_scale, variance=variance)
+        kernel_fn = partial(
+            matern32_kernel, length_scale=length_scale, variance=variance
+        )
     else:
-        kernel_fn = lambda a, b: periodic_kernel(
-            a, b, length_scale=length_scale, variance=variance, period=period
+        kernel_fn = partial(
+            periodic_kernel,
+            length_scale=length_scale,
+            variance=variance,
+            period=period,
         )
 
     n_test = st.slider("prediction grid points", 80, 600, 240, 10)

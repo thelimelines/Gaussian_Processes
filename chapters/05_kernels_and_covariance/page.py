@@ -1,10 +1,17 @@
 from __future__ import annotations
 
+from functools import partial
+
 import matplotlib.pyplot as plt
 import numpy as np
 import streamlit as st
 
-from gp_book.gp_math import matern32_kernel, periodic_kernel, rbf_kernel, sample_gp_prior
+from gp_book.gp_math import (
+    matern32_kernel,
+    periodic_kernel,
+    rbf_kernel,
+    sample_gp_prior,
+)
 
 TITLE = "5) Kernel Covariance Functions"
 
@@ -33,10 +40,7 @@ def render() -> None:
         "a value near zero means little linear co-movement."
     )
     st.markdown("A scale-free measure of association is the correlation")
-    st.latex(
-        r"\rho(x,x')="
-        r"\frac{k(x,x')}{\sqrt{k(x,x)\,k(x',x')}}."
-    )
+    st.latex(r"\rho(x,x')=" r"\frac{k(x,x')}{\sqrt{k(x,x)\,k(x',x')}}.")
     st.caption(
         "The RBF, Matérn 3/2 and periodic kernels used here produce non-negative "
         "covariances, but valid GP kernels can also produce negative covariance."
@@ -65,7 +69,7 @@ def render() -> None:
         period = st.slider("period (Periodic only)", 0.2, 5.0, 1.0, 0.05)
 
     if kernel_name == "RBF":
-        kernel_fn = lambda a, b: rbf_kernel(a, b, length_scale=length_scale, variance=variance)
+        kernel_fn = partial(rbf_kernel, length_scale=length_scale, variance=variance)
         st.latex(
             r"k_{\text{RBF}}(x, x') = \sigma^2 \exp\left(-\frac{\|x-x'\|^2}{2\ell^2}\right)"
         )
@@ -74,7 +78,9 @@ def render() -> None:
             r"and $\sigma^2$ sets the vertical scale."
         )
     elif kernel_name == "Matern 3/2":
-        kernel_fn = lambda a, b: matern32_kernel(a, b, length_scale=length_scale, variance=variance)
+        kernel_fn = partial(
+            matern32_kernel, length_scale=length_scale, variance=variance
+        )
         st.latex(
             r"k_{\nu=3/2}(r) = \sigma^2\left(1 + \frac{\sqrt{3}r}{\ell}\right)"
             r"\exp\left(-\frac{\sqrt{3}r}{\ell}\right)"
@@ -84,9 +90,8 @@ def render() -> None:
             "It is a good default when perfectly smooth curves feel too optimistic."
         )
     else:
-        kernel_fn = lambda a, b: periodic_kernel(
-            a,
-            b,
+        kernel_fn = partial(
+            periodic_kernel,
             length_scale=length_scale,
             variance=variance,
             period=period,

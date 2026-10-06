@@ -1,10 +1,17 @@
 from __future__ import annotations
 
+from functools import partial
+
 import matplotlib.pyplot as plt
 import numpy as np
 import streamlit as st
 
-from gp_book.gp_math import matern32_kernel, periodic_kernel, rbf_kernel, sample_gp_prior
+from gp_book.gp_math import (
+    matern32_kernel,
+    periodic_kernel,
+    rbf_kernel,
+    sample_gp_prior,
+)
 
 TITLE = "6) Formal Gaussian Process Definition"
 
@@ -17,7 +24,7 @@ def render() -> None:
         "look plausible."
     )
     st.markdown(
-        'Formal definition (RW2006, Definition 2.1): '
+        "Formal definition (RW2006, Definition 2.1): "
         '"A Gaussian process is a collection of random variables, any finite number '
         'of which have a joint Gaussian distribution."'
     )
@@ -36,12 +43,16 @@ def render() -> None:
     )
     st.markdown("Where:")
     st.markdown(r"- $m(x)$ is the mean function (the baseline trend).")
-    st.markdown(r"- $k(x, x')$ is the kernel/covariance function (how points are related).")
+    st.markdown(
+        r"- $k(x, x')$ is the kernel/covariance function (how points are related)."
+    )
     st.markdown(
         "To actually compute with a GP, we choose a finite list of inputs "
         r"$X = [x_1, \dots, x_n]$:"
     )
-    st.latex(r"\mathbf{f} = [f(x_1), \dots, f(x_n)]^\top \sim \mathcal{N}(\mathbf{m}, K)")
+    st.latex(
+        r"\mathbf{f} = [f(x_1), \dots, f(x_n)]^\top \sim \mathcal{N}(\mathbf{m}, K)"
+    )
     st.markdown(r"with $m_i = m(x_i)$ and $K_{ij} = k(x_i, x_j)$.")
     st.markdown(
         "In plain words: evaluate the mean at each point to get a mean vector, and evaluate "
@@ -54,11 +65,11 @@ def render() -> None:
             r"$f \sim \mathcal{GP}(m, k)$."
         )
         st.markdown("2. Observe noisy data")
-        st.latex(r"y_i = f(x_i) + \epsilon_i, \quad \epsilon_i \sim \mathcal{N}(0, \sigma_n^2)")
-        st.markdown("3. Build kernel blocks")
         st.latex(
-            r"K_{XX},\quad K_{X X_*},\quad K_{X_* X},\quad K_{X_* X_*}"
+            r"y_i = f(x_i) + \epsilon_i, \quad \epsilon_i \sim \mathcal{N}(0, \sigma_n^2)"
         )
+        st.markdown("3. Build kernel blocks")
+        st.latex(r"K_{XX},\quad K_{X X_*},\quad K_{X_* X},\quad K_{X_* X_*}")
         st.markdown(
             r"Notation for $*$: the star means 'test/query points'. "
             r"So $X$ is observed inputs and $X_*$ is prediction inputs."
@@ -80,9 +91,7 @@ def render() -> None:
             r"\begin{bmatrix}K_{XX}+\sigma_n^2I&K_{XX_*}\\K_{X_*X}&K_{X_*X_*}\end{bmatrix}"
             r"\right)"
         )
-        st.latex(
-            r"\mu_* = m(X_*) + K_{X_*X}(K_{XX} + \sigma_n^2 I)^{-1}(y - m(X))"
-        )
+        st.latex(r"\mu_* = m(X_*) + K_{X_*X}(K_{XX} + \sigma_n^2 I)^{-1}(y - m(X))")
         st.latex(
             r"\Sigma_* = K_{X_*X_*} - K_{X_*X}(K_{XX} + \sigma_n^2 I)^{-1}K_{XX_*}"
         )
@@ -112,12 +121,17 @@ def render() -> None:
         period = st.slider("period (Periodic only)", 0.2, 5.0, 1.0, 0.05)
 
     if kernel_name == "RBF":
-        kernel_fn = lambda a, b: rbf_kernel(a, b, length_scale=length_scale, variance=variance)
+        kernel_fn = partial(rbf_kernel, length_scale=length_scale, variance=variance)
     elif kernel_name == "Matern 3/2":
-        kernel_fn = lambda a, b: matern32_kernel(a, b, length_scale=length_scale, variance=variance)
+        kernel_fn = partial(
+            matern32_kernel, length_scale=length_scale, variance=variance
+        )
     else:
-        kernel_fn = lambda a, b: periodic_kernel(
-            a, b, length_scale=length_scale, variance=variance, period=period
+        kernel_fn = partial(
+            periodic_kernel,
+            length_scale=length_scale,
+            variance=variance,
+            period=period,
         )
 
     x = np.linspace(-5.0, 5.0, 120)[:, None]
@@ -130,7 +144,9 @@ def render() -> None:
     samples = sample_gp_prior(x, kernel_fn, n_samples=6, rng=rng, mean=mean)
 
     fig, ax = plt.subplots(figsize=(10, 4))
-    ax.plot(x[:, 0], mean, color="black", linewidth=2.0, linestyle="--", label="mean m(x)")
+    ax.plot(
+        x[:, 0], mean, color="black", linewidth=2.0, linestyle="--", label="mean m(x)"
+    )
     for idx, sample in enumerate(samples):
         ax.plot(x[:, 0], sample, alpha=0.85, label=f"sample {idx + 1}")
     ax.set_title("Finite draws implied by the GP definition")
@@ -140,8 +156,6 @@ def render() -> None:
     st.pyplot(fig)
 
     st.code(
-        "K = k(X, X)\n"
-        "f ~ N(m(X), K)\n"
-        "# This finite MVN is the operational GP view",
+        "K = k(X, X)\nf ~ N(m(X), K)\n# This finite MVN is the operational GP view",
         language="python",
     )

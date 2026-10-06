@@ -47,14 +47,18 @@ def render() -> None:
     ax.plot(x, y, label=f"N({mu:.1f}, {sigma:.1f}^2)")
     ax.plot(x, y_std, linestyle="--", label="N(0, 1)")
     mask = (x >= a) & (x <= b)
-    ax.fill_between(x[mask], 0.0, y[mask], alpha=0.25, label=f"P({a:.1f} <= X <= {b:.1f})")
+    ax.fill_between(
+        x[mask], 0.0, y[mask], alpha=0.25, label=f"P({a:.1f} <= X <= {b:.1f})"
+    )
     ax.set_xlabel("x")
     ax.set_ylabel("density")
     ax.set_title("General normal vs standard normal")
     ax.legend(loc="upper right")
     st.pyplot(fig)
 
-    interval_prob = float(norm.cdf(b, loc=mu, scale=sigma) - norm.cdf(a, loc=mu, scale=sigma))
+    interval_prob = float(
+        norm.cdf(b, loc=mu, scale=sigma) - norm.cdf(a, loc=mu, scale=sigma)
+    )
     standard_interval_prob = float(norm.cdf(b) - norm.cdf(a))
 
     probability_col, standard_probability_col = st.columns(2)

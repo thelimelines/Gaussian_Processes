@@ -89,7 +89,9 @@ def render() -> None:
     ax.set_ylabel("x2")
     ax.set_aspect("equal", adjustable="box")
     sd_legend_handle = tuple(
-        Rectangle((0.0, 0.0), 1.0, 1.0, facecolor="#f4a261", edgecolor="none", alpha=alpha)
+        Rectangle(
+            (0.0, 0.0), 1.0, 1.0, facecolor="#f4a261", edgecolor="none", alpha=alpha
+        )
         for alpha in (0.8, 0.5, 0.2)
     )
     ax.legend(

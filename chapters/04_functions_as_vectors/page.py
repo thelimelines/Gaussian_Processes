@@ -63,7 +63,9 @@ def render() -> None:
     f_dense = _base_function(x_dense, fn_name)
 
     fig, ax = plt.subplots(figsize=(9, 4))
-    ax.plot(x_dense, f_dense, color="#1f77b4", linewidth=2.5, label="latent function f(x)")
+    ax.plot(
+        x_dense, f_dense, color="#1f77b4", linewidth=2.5, label="latent function f(x)"
+    )
     ax.scatter(
         x,
         f,

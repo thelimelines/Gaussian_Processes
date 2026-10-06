@@ -211,7 +211,10 @@ def main() -> None:
         return
 
     all_slugs = [page["slug"] for page in flat_pages]
-    if "selected_slug" not in st.session_state or st.session_state["selected_slug"] not in all_slugs:
+    if (
+        "selected_slug" not in st.session_state
+        or st.session_state["selected_slug"] not in all_slugs
+    ):
         st.session_state["selected_slug"] = all_slugs[0]
 
     current_slug = st.session_state["selected_slug"]
@@ -230,7 +233,9 @@ def main() -> None:
         index=current_section_index,
     )
     selected_section = next(
-        section for section in nav_sections if section["section_label"] == selected_section_label
+        section
+        for section in nav_sections
+        if section["section_label"] == selected_section_label
     )
     section_pages = selected_section["items"]
     section_page_labels = [page["nav_label"] for page in section_pages]
@@ -243,7 +248,9 @@ def main() -> None:
         section_page_labels,
         index=default_page_index,
     )
-    selected_page = next(page for page in section_pages if page["nav_label"] == selected_page_label)
+    selected_page = next(
+        page for page in section_pages if page["nav_label"] == selected_page_label
+    )
     if selected_page["slug"] != current_slug:
         st.session_state["selected_slug"] = selected_page["slug"]
         st.rerun()
@@ -262,7 +269,7 @@ def main() -> None:
             f"""
             <div style="text-align: center;">
                 <strong>{selected_section_label}</strong><br>
-                <strong>{current_page['nav_label']}</strong>
+                <strong>{current_page["nav_label"]}</strong>
             </div>
             """,
             unsafe_allow_html=True,

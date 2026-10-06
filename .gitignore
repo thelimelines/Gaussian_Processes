@@ -1,4 +1,7 @@
 .venv/
+.ruff_cache/
+.mypy_cache/
+.pyright/
 __pycache__/
 *.pyc
 .streamlit/secrets.toml

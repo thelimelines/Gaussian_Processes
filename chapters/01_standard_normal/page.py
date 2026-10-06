@@ -43,7 +43,9 @@ def render() -> None:
     fig, ax = plt.subplots(figsize=(9, 4))
     ax.plot(x, y, label="Standard normal pdf")
     mask = (x >= a) & (x <= b)
-    ax.fill_between(x[mask], 0.0, y[mask], alpha=0.25, label=f"P({a:.1f} <= Z <= {b:.1f})")
+    ax.fill_between(
+        x[mask], 0.0, y[mask], alpha=0.25, label=f"P({a:.1f} <= Z <= {b:.1f})"
+    )
     ax.set_title("Standard normal density")
     ax.set_xlabel("z")
     ax.set_ylabel("density")
@@ -57,8 +59,6 @@ def render() -> None:
     )
 
     st.code(
-        "from scipy.stats import norm\n"
-        "prob = norm.cdf(b) - norm.cdf(a)\n"
-        "print(prob)",
+        "from scipy.stats import norm\nprob = norm.cdf(b) - norm.cdf(a)\nprint(prob)",
         language="python",
     )

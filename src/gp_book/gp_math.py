@@ -79,7 +79,9 @@ def cholesky_with_jitter(K: np.ndarray, base_jitter: float = 1e-8) -> np.ndarray
             return np.linalg.cholesky(K + jitter * np.eye(K.shape[0]))
         except np.linalg.LinAlgError:
             jitter *= 10.0
-    raise np.linalg.LinAlgError("Cholesky decomposition failed even after jitter escalation.")
+    raise np.linalg.LinAlgError(
+        "Cholesky decomposition failed even after jitter escalation."
+    )
 
 
 def sample_mvn(
@@ -141,7 +143,9 @@ def gp_posterior_predictive(
     else:
         noise_diagonal = np.maximum(noise_values.reshape(-1), 1e-12)
         if noise_diagonal.shape[0] != X_train.shape[0]:
-            raise ValueError("noise_variance must be a scalar or have one value per observation.")
+            raise ValueError(
+                "noise_variance must be a scalar or have one value per observation."
+            )
 
     K_xx = kernel_fn(X_train, X_train)
     K_xx = 0.5 * (K_xx + K_xx.T) + np.diag(noise_diagonal)

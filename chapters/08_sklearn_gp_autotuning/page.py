@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import warnings
-from typing import cast
+from typing import Any, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -9,7 +9,13 @@ import pandas as pd
 import streamlit as st
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import ConstantKernel, ExpSineSquared, Matern, RBF, WhiteKernel
+from sklearn.gaussian_process.kernels import (
+    RBF,
+    ConstantKernel,
+    ExpSineSquared,
+    Matern,
+    WhiteKernel,
+)
 
 TITLE = "8) Scikit-Learn GP Regressor (Autotuned Hyperparameters)"
 NUMERICAL_JITTER = 1e-8
@@ -33,7 +39,9 @@ def _build_kernel(
     if kernel_name == "RBF":
         base = RBF(length_scale=length_scale, length_scale_bounds=(1e-2, 1e2))
     elif kernel_name == "Matern 3/2":
-        base = Matern(length_scale=length_scale, length_scale_bounds=(1e-2, 1e2), nu=1.5)
+        base = Matern(
+            length_scale=length_scale, length_scale_bounds=(1e-2, 1e2), nu=1.5
+        )
     else:
         base = ExpSineSquared(
             length_scale=length_scale,
@@ -64,7 +72,9 @@ def render() -> None:
         "you get Bayesian optimization."
     )
     st.markdown("Notation carried from Chapter 7:")
-    st.markdown(r"- $X$: observed inputs, $y$: observed outputs, $X_*$: prediction inputs.")
+    st.markdown(
+        r"- $X$: observed inputs, $y$: observed outputs, $X_*$: prediction inputs."
+    )
     st.markdown(
         r"- $\theta$: kernel hyperparameters (length-scale, signal variance, "
         r"observation-noise variance and periodicity)."
@@ -103,7 +113,9 @@ def render() -> None:
         "of the fitted kernel, scikit-learn's returned prediction standard deviation also "
         "contains observation-noise variance at each prediction point."
     )
-    st.caption(f"Numerical alpha is fixed at {NUMERICAL_JITTER:.0e}; it is not learned noise.")
+    st.caption(
+        f"Numerical alpha is fixed at {NUMERICAL_JITTER:.0e}; it is not learned noise."
+    )
 
     data_mode = st.radio(
         "Data source",
@@ -141,14 +153,20 @@ def render() -> None:
                 "y": [0.2, -0.7, -0.9, -0.1, 0.8, 0.7, 0.3],
             }
         )
-        edited = st.data_editor(
-            default_df,
-            num_rows="dynamic",
-            width="stretch",
-            key="gp_table_sklearn",
+        edited = cast(
+            pd.DataFrame,
+            st.data_editor(
+                default_df,
+                num_rows="dynamic",
+                width="stretch",
+                key="gp_table_sklearn",
+            ),
         )
-        clean = edited[["x", "y"]].apply(pd.to_numeric, errors="coerce").dropna()
-        clean = clean.sort_values("x")
+        clean = cast(
+            pd.DataFrame,
+            edited[["x", "y"]].apply(pd.to_numeric, errors="coerce").dropna(),
+        )
+        clean = clean.sort_values(by=["x"])
         if clean.shape[0] < 2:
             st.warning("Add at least 2 valid points in the custom table.")
             return
@@ -180,7 +198,9 @@ def render() -> None:
     with col10:
         normalize_y = st.checkbox("normalize y", value=True)
     with col11:
-        optimizer_mode = st.selectbox("optimizer", ["L-BFGS-B", "None (fixed kernel)"], index=0)
+        optimizer_mode = st.selectbox(
+            "optimizer", ["L-BFGS-B", "None (fixed kernel)"], index=0
+        )
     with col12:
         n_restarts_optimizer = st.slider("optimizer restarts", 0, 12, 4, 1)
 
@@ -207,7 +227,8 @@ def render() -> None:
         gpr = GaussianProcessRegressor(
             kernel=kernel,
             alpha=NUMERICAL_JITTER,
-            optimizer=optimizer,
+            # The runtime API accepts None to disable optimization; its type omits that option.
+            optimizer=cast(Any, optimizer),
             n_restarts_optimizer=restarts,
             normalize_y=normalize_y,
             random_state=321,
@@ -220,7 +241,9 @@ def render() -> None:
         if issubclass(warning.category, ConvergenceWarning)
     ]
     if convergence_messages:
-        st.warning("Convergence warnings were raised:\n- " + "\n- ".join(convergence_messages))
+        st.warning(
+            "Convergence warnings were raised:\n- " + "\n- ".join(convergence_messages)
+        )
 
     mean, observation_std = cast(
         tuple[np.ndarray, np.ndarray],
@@ -304,7 +327,9 @@ def render() -> None:
     )
     colm1, colm2, colm3, colm4 = st.columns(4)
     with colm1:
-        st.metric("Log-marginal likelihood", f"{gpr.log_marginal_likelihood_value_:.3f}")
+        st.metric(
+            "Log-marginal likelihood", f"{gpr.log_marginal_likelihood_value_:.3f}"
+        )
     with colm2:
         st.metric(white_kernel_metric, f"{learned_noise_variance:.3g}")
     with colm3:
